@@ -1,0 +1,91 @@
+<html>
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge ,chrome=1">
+<title>Speech to text Converter</title>
+<link rel="stylesheet"   type="text/css" href="sty.css">
+</head>
+
+<body>
+    
+   <textarea type="text" onclick="startConverting();" id="result" placeholder="enter to talk" ></textarea> 
+   <button onclick="connectSerial()">connect Serial</button>
+
+<script>
+var port, textEncode, writableClosed, writer;
+async function connectSerial() {
+try {
+port = await navigator.serial.requestPort();
+await port.open({ baudRate: 9600 });
+//Send text to the device through a TextEncoderStream piped to port.writable
+textEncode = new TextEncoderStream();
+writableClosed = textEncode.readable.pipeTo(port.writable);
+
+writer = textEncode.writable.getWriter();
+listenToPort();
+} catch {
+alert("Connection is error");// TODO: Handle non-fatal read error
+}
+}
+
+
+function startConverting() {
+var recognition = new webkitSpeechRecognition();
+recognition.lang = "en";
+
+recognition.onresult = function (event) {
+
+var res = document.getElementById('result').value = event.results[0][0].transcript;
+if (res == "right." || res=="right") {
+console.log(res)
+sendSerialLine();
+
+}else if(res == "left." || res=="left") {
+console.log(res)
+sendSerialLineB();
+
+}
+}
+recognition.start();
+}
+
+
+document.querySelector('button').addEventListener('click', async () => {
+const port = await navigator.serial.requestPort();// Prompt user to select any serial port.
+await port.open({ baudRate: 9600 });// Wait for the serial port to open.
+});
+
+
+
+async function listenToPort() {
+const textDecoder = new TextDecoderStream();
+const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
+const reader = textDecoder.readable.getReader();
+// Listen to data coming from  serial device.
+while (true) {
+const { value, done } = await reader.read();
+if (done) {
+// Allow the serial port to be closed later.
+reader.releaseLock();
+break;
+}
+// value is a string.
+appendToTerminal(value);
+}
+}
+async function sendSerialLine() {dataToSend = 'A'
+dataToSend = dataToSend + "\r\n";
+
+await writer.write(dataToSend);
+}
+async function sendSerialLineB() {
+dataToSend = 'B'
+dataToSend = dataToSend + "\r\n";
+
+await writer.write(dataToSend);
+}
+</script>
+</body>
+</html>
